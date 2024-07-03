@@ -1,0 +1,67 @@
+{
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "attributes": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "reviewerNickname": {
+            "type": "string"
+          },
+          "createdDate": {
+            "type": "string"
+          },
+          "territory": {
+            "type": "string"
+          }
+        }
+      },
+      "relationships": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "type": "object",
+            "properties": {
+              "links": {
+                "type": "object",
+                "properties": {
+                  "self": {
+                    "type": "string"
+                  },
+                  "related": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "links": {
+        "type": "object",
+        "properties": {
+          "self": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required": [
+        "id"
+    ]
+}
+  

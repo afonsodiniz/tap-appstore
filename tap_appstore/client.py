@@ -4,119 +4,81 @@ from __future__ import annotations
 
 import sys
 from typing import Any, Callable, Iterable
+import jwt
+from datetime import datetime, timedelta
 
 import requests
 from singer_sdk.authenticators import BearerTokenAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.pagination import BaseAPIPaginator  # noqa: TCH002
 from singer_sdk.streams import RESTStream
+import base64
 
 if sys.version_info >= (3, 9):
     import importlib.resources as importlib_resources
 else:
     import importlib_resources
+import os
 
 _Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
 
-# TODO: Delete this is if not using json files for schema definition
 SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
 
 
 class AppStoreStream(RESTStream):
-    """AppStore stream class."""
+
+    records_jsonpath = "$.data[*]"  
+    next_page_token_jsonpath = "$.next_page" 
 
     @property
+    def generate_jwt_token(self) -> str:
+
+        encoded_key = os.environ.get('TAP_APPSTORE_PRIVATE_KEY')
+
+        if encoded_key is None:
+            raise ValueError("An error has occured with the Encoded Key.")
+
+        private_key = base64.b64decode(encoded_key).decode('utf-8')
+    
+
+        current_local_time = datetime.utcnow() + timedelta(hours=1) 
+        expiration_time = current_local_time + timedelta(minutes=10)
+
+        iat = int(current_local_time.timestamp())
+        exp = int(expiration_time.timestamp())
+
+        # Set JWT headers and payload
+        header = {
+            "alg": "ES256",         
+            "kid": "PY8HN4AUCX",
+            "typ": "JWT"
+        }
+
+        payload = {
+            "iss": "986c6837-b835-41cc-8b1e-cfc9e3853f4f",
+            "iat": iat,
+            "exp": exp,
+            "aud": "appstoreconnect-v1"
+        }
+
+        print(payload)
+        encoded_jwt = jwt.encode(payload, private_key, algorithm='ES256', headers=header)
+        print(encoded_jwt)
+
+        return encoded_jwt
+    
+    @property
     def url_base(self) -> str:
-        """Return the API URL root, configurable via tap settings."""
-        # TODO: hardcode a value here, or retrieve it from self.config
-        return "https://api.mysample.com"
 
-    records_jsonpath = "$[*]"  # Or override `parse_response`.
-
-    # Set this value or override `get_new_paginator`.
-    next_page_token_jsonpath = "$.next_page"  # noqa: S105
+        return self.config.get("api_url")
 
     @property
     def authenticator(self) -> BearerTokenAuthenticator:
-        """Return a new authenticator object.
 
-        Returns:
-            An authenticator instance.
-        """
         return BearerTokenAuthenticator.create_for_stream(
             self,
-            token=self.config.get("auth_token", ""),
+            token=self.generate_jwt_token
         )
-
-    @property
-    def http_headers(self) -> dict:
-        """Return the http headers needed.
-
-        Returns:
-            A dictionary of HTTP headers.
-        """
-        headers = {}
-        if "user_agent" in self.config:
-            headers["User-Agent"] = self.config.get("user_agent")
-        # If not using an authenticator, you may also provide inline auth headers:
-        # headers["Private-Token"] = self.config.get("auth_token")  # noqa: ERA001
-        return headers
-
-    def get_new_paginator(self) -> BaseAPIPaginator:
-        """Create a new pagination helper instance.
-
-        If the source API can make use of the `next_page_token_jsonpath`
-        attribute, or it contains a `X-Next-Page` header in the response
-        then you can remove this method.
-
-        If you need custom pagination that uses page numbers, "next" links, or
-        other approaches, please read the guide: https://sdk.meltano.com/en/v0.25.0/guides/pagination-classes.html.
-
-        Returns:
-            A pagination helper instance.
-        """
-        return super().get_new_paginator()
-
-    def get_url_params(
-        self,
-        context: dict | None,  # noqa: ARG002
-        next_page_token: Any | None,  # noqa: ANN401
-    ) -> dict[str, Any]:
-        """Return a dictionary of values to be used in URL parameterization.
-
-        Args:
-            context: The stream context.
-            next_page_token: The next page index or value.
-
-        Returns:
-            A dictionary of URL query parameters.
-        """
-        params: dict = {}
-        if next_page_token:
-            params["page"] = next_page_token
-        if self.replication_key:
-            params["sort"] = "asc"
-            params["order_by"] = self.replication_key
-        return params
-
-    def prepare_request_payload(
-        self,
-        context: dict | None,  # noqa: ARG002
-        next_page_token: Any | None,  # noqa: ARG002, ANN401
-    ) -> dict | None:
-        """Prepare the data payload for the REST API request.
-
-        By default, no payload will be sent (return None).
-
-        Args:
-            context: The stream context.
-            next_page_token: The next page index or value.
-
-        Returns:
-            A dictionary with the JSON body for a POST requests.
-        """
-        # TODO: Delete this method if no payload is required. (Most REST APIs.)
-        return None
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result records.
@@ -127,7 +89,7 @@ class AppStoreStream(RESTStream):
         Yields:
             Each record from the source.
         """
-        # TODO: Parse response body and return a set of records.
+
         yield from extract_jsonpath(self.records_jsonpath, input=response.json())
 
     def post_process(
