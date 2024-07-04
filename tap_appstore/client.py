@@ -61,9 +61,9 @@ class AppStoreStream(RESTStream):
             "aud": "appstoreconnect-v1"
         }
 
-        print(payload)
+        # print(payload)
         encoded_jwt = jwt.encode(payload, private_key, algorithm='ES256', headers=header)
-        print(encoded_jwt)
+        # print(encoded_jwt)
 
         return encoded_jwt
     
