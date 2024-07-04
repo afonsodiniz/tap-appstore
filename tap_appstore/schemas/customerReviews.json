@@ -11,7 +11,7 @@
         "type": "object",
         "properties": {
           "rating": {
-            "type": "string"
+            "type": "integer"
           },
           "title": {
             "type": "string"
