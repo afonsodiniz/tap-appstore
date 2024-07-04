@@ -41,7 +41,7 @@ class AppStoreStream(RESTStream):
         private_key = base64.b64decode(encoded_key).decode('utf-8')
     
 
-        current_local_time = datetime.utcnow() + timedelta(hours=1) 
+        current_local_time = datetime.utcnow() # + timedelta(hours=1) # uncomment if locally testing
         expiration_time = current_local_time + timedelta(minutes=10)
 
         iat = int(current_local_time.timestamp())
