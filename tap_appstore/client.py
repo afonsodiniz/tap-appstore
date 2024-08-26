@@ -50,7 +50,7 @@ class AppStoreStream(RESTStream):
         # Set JWT headers and payload
         header = {
             "alg": "ES256",         
-            "kid": "PY8HN4AUCX",
+            "kid": "VVTRQ82P72",
             "typ": "JWT"
         }
 
