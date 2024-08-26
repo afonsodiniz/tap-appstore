@@ -2,33 +2,27 @@
 
 from __future__ import annotations
 
-import sys
-from typing import Any, Callable, Iterable
 import jwt
 from datetime import datetime, timedelta
 
-import requests
 from singer_sdk.authenticators import BearerTokenAuthenticator
-from singer_sdk.helpers.jsonpath import extract_jsonpath
-from singer_sdk.pagination import BaseAPIPaginator  # noqa: TCH002
 from singer_sdk.streams import RESTStream
+import sys
+import os
 import base64
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 if sys.version_info >= (3, 9):
     import importlib.resources as importlib_resources
 else:
     import importlib_resources
-import os
 
-_Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
+class AppStoreBaseStream(RESTStream):
 
-SCHEMAS_DIR = importlib_resources.files(__package__) / "schemas"
-
-
-class AppStoreStream(RESTStream):
-
-    records_jsonpath = "$.data[*]"  
-    next_page_token_jsonpath = "$.next_page" 
 
     @property
     def generate_jwt_token(self) -> str:
@@ -41,7 +35,7 @@ class AppStoreStream(RESTStream):
         private_key = base64.b64decode(encoded_key).decode('utf-8')
     
 
-        current_local_time = datetime.utcnow() # + timedelta(hours=1) # uncomment if locally testing
+        current_local_time = datetime.utcnow() + timedelta(hours=1) # uncomment if locally testing
         expiration_time = current_local_time + timedelta(minutes=10)
 
         iat = int(current_local_time.timestamp())
@@ -61,9 +55,7 @@ class AppStoreStream(RESTStream):
             "aud": "appstoreconnect-v1"
         }
 
-        # print(payload)
         encoded_jwt = jwt.encode(payload, private_key, algorithm='ES256', headers=header)
-        # print(encoded_jwt)
 
         return encoded_jwt
     
@@ -79,32 +71,3 @@ class AppStoreStream(RESTStream):
             self,
             token=self.generate_jwt_token
         )
-
-    def parse_response(self, response: requests.Response) -> Iterable[dict]:
-        """Parse the response and return an iterator of result records.
-
-        Args:
-            response: The HTTP ``requests.Response`` object.
-
-        Yields:
-            Each record from the source.
-        """
-
-        yield from extract_jsonpath(self.records_jsonpath, input=response.json())
-
-    def post_process(
-        self,
-        row: dict,
-        context: dict | None = None,  # noqa: ARG002
-    ) -> dict | None:
-        """As needed, append or transform raw data to match expected structure.
-
-        Args:
-            row: An individual record from the stream.
-            context: The stream context.
-
-        Returns:
-            The updated record dictionary, or ``None`` to skip the record.
-        """
-        # TODO: Delete this method if not needed.
-        return row

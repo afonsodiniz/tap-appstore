@@ -7,7 +7,7 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 
 # TODO: Import your custom stream types here:
 from tap_appstore import streams
-
+from tap_appstore.appstore_streams import AppStoreBaseStream
 
 class TapAppStore(Tap):
     """AppStore tap class."""
@@ -24,16 +24,25 @@ class TapAppStore(Tap):
             "start_date",
             th.StringType,
         ),
+        th.Property(
+            "app_id",
+            th.StringType,
+        ),
+        th.Property(
+            "vendor_number",
+            th.StringType,
+        ),
     ).to_dict()
 
-    def discover_streams(self) -> list[streams.AppStoreStream]:
+    def discover_streams(self) -> list[AppStoreBaseStream]:
         """Return a list of discovered streams.
 
         Returns:
             A list of discovered streams.
         """
         return [
-            streams.CustomerReviews(self)
+            streams.CustomerReviews(self),
+            streams.SalesReport(self)
         ]
 
 

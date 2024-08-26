@@ -19,6 +19,13 @@ plugins:
     settings:
     - name: api_url
     - name: start_date
+    - name: app_id
+      kind: string
+      sensitive: true
+    - name: vendor_number
+      kind: string
+      sensitive: true
+
     config:
       api_url: 'https://api.appstoreconnect.apple.com/v1'
       start_date: '2024-01-01'
